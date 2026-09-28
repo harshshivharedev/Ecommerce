@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Build
+dist/
+
+# Generated files
+generated/
+
+# AI / editor local configuration
+.claude/
+.windsurf/
+.agents/
