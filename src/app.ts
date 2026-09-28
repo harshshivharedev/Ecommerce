@@ -5,13 +5,7 @@ const app = express();
 
 app.use(express.json());
 
-app.get("/", async (_req, res) => {
-  const users = await prisma.user.findMany();
-
-  res.json({
-    message: "Ecommerce API is running",
-    users,
-  });
-});
+//  import routes 
+import authRouter from "./routes/user.routes.js"
 
 export default app;
