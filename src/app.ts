@@ -1,11 +1,13 @@
 import express from "express";
-import prisma from "./lib/prisma.js";
+import rootRouter from "./routes/index.js";
 
 const app = express();
 
 app.use(express.json());
 
 //  import routes 
-import authRouter from "./routes/user.routes.js"
 
-export default app;
+
+app.use('/api',rootRouter);
+
+export { app };
