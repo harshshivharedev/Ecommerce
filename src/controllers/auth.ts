@@ -1,47 +1,57 @@
-import { Request, Response} from "express";
+import { NextFunction, Request, Response} from "express";
 import "dotenv/config";
 import prisma  from "../lib/prisma.js"
 import {hashSync, compareSync} from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { BadRequestException } from "../exceptions/badRequest.js";
+import { ErrorCode } from "../exceptions/root.js";
+import { UnprocessableEntity } from "../exceptions/validation.js";
+import { SignupSchema } from "../schema/user.js";
 
- const signup = async (req:Request, res: Response) =>{
-    
-    // destructure fields
-    const {email, name, password} = req.body;
+ const signup = async (req:Request, res: Response, next:NextFunction) =>{
 
-    // check user already 
-    let user = await prisma.user.findFirst({
-        where: {
-           email
-    }})
+    try{
+        SignupSchema.parse(req.body);
+        // destructure fields
+        const {email, name, password} = req.body;
 
-    if(user) {
-        throw Error('User already exists');
-    }
+        // check user already 
+        let user = await prisma.user.findFirst({
+            where: {
+            email
+        }})
 
-    user = await prisma.user.create({
-        data: {
-            name,
-            email,
-            password: hashSync(password, 10)
+        if(user) {
+            return next( new BadRequestException("User already exists!", ErrorCode.USER_ALREADY_EXISTS));
         }
-    })
 
-    res.json(user);
+        user = await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashSync(password, 10)
+            }
+        })
+
+        res.json(user);
+    } catch (err : any) {
+        next ( new UnprocessableEntity(err?.issue, "Unprocessable entity", ErrorCode.UNPROCESSABLE_ENTITY ))
+    }
+    
 }
 
-const login = async ( req:Request, res:Response) => {
+const login = async ( req:Request, res:Response, next: NextFunction) => {
 
     const { email, password} = req.body;
 
     let user = await prisma.user.findFirst({where: {email}});
 
     if(!user) {
-        throw Error ('User does not exists!')
+        return next ( new BadRequestException('User does not found', ErrorCode.USER_NOT_FOUND))
     }
 
     if(!compareSync(password, user.password)){
-        throw Error('Incorrect password!');
+        return next ( new BadRequestException('Incorrect password!', ErrorCode.INCORRECT_PASSWORD));
     }
 
     const secret = process.env.JWT_SECRET;
