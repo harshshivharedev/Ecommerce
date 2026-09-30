@@ -10,8 +10,7 @@ import { SignupSchema } from "../schema/user.js";
 
  const signup = async (req:Request, res: Response, next:NextFunction) =>{
 
-    try{
-        SignupSchema.parse(req.body);
+    SignupSchema.parse(req.body);
         // destructure fields
         const {email, name, password} = req.body;
 
@@ -34,9 +33,7 @@ import { SignupSchema } from "../schema/user.js";
         })
 
         res.json(user);
-    } catch (err : any) {
-        next ( new UnprocessableEntity(err?.issue, "Unprocessable entity", ErrorCode.UNPROCESSABLE_ENTITY ))
-    }
+    
     
 }
 
