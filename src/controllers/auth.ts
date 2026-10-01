@@ -49,7 +49,7 @@ const login = async ( req:Request, res:Response, next: NextFunction) => {
     }
 
     if(!compareSync(password, user.password)){
-        throw new notFoundException('Incorrect password!', ErrorCode.INCORRECT_PASSWORD);
+        throw new BadRequestException('Incorrect password!', ErrorCode.INCORRECT_PASSWORD);
     }
 
     const secret = process.env.JWT_SECRET;
@@ -67,7 +67,14 @@ const login = async ( req:Request, res:Response, next: NextFunction) => {
     })
 }
 
+//  me -> return the logged in user
+const me = async ( req:Request, res:Response, next: NextFunction) => {
+
+    res.json(req.user)
+}
+
 export {
     signup,
     login,
+    me
 }
