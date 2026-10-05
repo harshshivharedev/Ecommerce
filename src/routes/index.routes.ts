@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {authRoutes} from "./auth.js"
+import {authRoutes} from "./auth.routes.js"
 import productsRoutes from "./product.routes.js";
 import addressRoutes from "./address.routes.js";
 
