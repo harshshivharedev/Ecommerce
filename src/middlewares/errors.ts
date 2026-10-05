@@ -1,10 +1,10 @@
 import { NextFunction, Request, Response } from "express";
-import { ErrorCode, HttpException } from "../exceptions/root.js";
+import { HttpException } from "../exceptions/root.js";
 
 export const errorMiddleware = (error: HttpException, req:Request, res:Response,next:NextFunction) => {
     res.status(error.statusCode).json({
         message: error.message,
         errorCode: error.errorCode,
-        errors: error.error
+        errors: error.statusCode < 500 ? error.error : null
     })
 }
