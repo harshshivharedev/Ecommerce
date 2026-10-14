@@ -1,7 +1,15 @@
-import { PrismaClient } from "@prisma/client/extension";
+import prisma from "../lib/prisma.js";
 import { Request, Response } from "express";
+import { UnauthorizedException } from "../exceptions/unauthorized.js";
+import { ErrorCode } from "../exceptions/root.js";
 
 export const createOrder = async (req: Request, res: Response) => {
+    // the route is guarded by authMiddleware, but TS still sees req.user as optional
+    const user = req.user;
+    if (!user) {
+        throw new UnauthorizedException('Unauthorized', ErrorCode.UNAUTHORIZED);
+    }
+
     // to create a transaction
     // to list all the cart items and procceed if cart is not empty
     // calculate the total amount
@@ -11,10 +19,13 @@ export const createOrder = async (req: Request, res: Response) => {
     // create event 
     // to empty the cart 
 
-    return await PrismaClient.$transaction(async(tx) => {
-        const cartItems = await tx.cartItem.findMany({
+    return await prisma.$transaction(async(tx) => {
+        const cartItems = await tx.cartItems.findMany({
             where: {
-                userId: req.user?.id
+                userId: user.id
+            },
+            include: {
+                product: true
             }
         })
         if(cartItems.length == 0) {
@@ -27,14 +38,14 @@ export const createOrder = async (req: Request, res: Response) => {
 
         const address = await tx.address.findFirst({
             where: {
-                id: req.user?.defaultShippingAddress
+                id: user.defaultShippingAddress ?? undefined
             }
         })
         const order = await tx.order.create({
             data: {
-                userId: req.user?.id,
+                userId: user.id,
                 netAmount: price,
-                address: address.formatedAddress,
+                address: address?.formatedAddress ?? "",
                 products: {
                     create: cartItems.map((cart) => {
                         return {
@@ -50,9 +61,9 @@ export const createOrder = async (req: Request, res: Response) => {
                 orderId: order.id,
             }
         })
-        await tx.cartItem.deleteMany({
+        await tx.cartItems.deleteMany({
             where: {
-                userId: req.user?.id
+                userId: user.id
             }
         })
     })
