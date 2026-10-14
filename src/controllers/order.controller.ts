@@ -2,6 +2,8 @@ import prisma from "../lib/prisma.js";
 import { Request, Response } from "express";
 import { UnauthorizedException } from "../exceptions/unauthorized.js";
 import { ErrorCode } from "../exceptions/root.js";
+import { notFoundException } from "../exceptions/notFound.js";
+import { OrderEventStatus } from "../../generated/prisma/client.js";
 
 export const createOrder = async (req: Request, res: Response) => {
     // the route is guarded by authMiddleware, but TS still sees req.user as optional
@@ -70,13 +72,79 @@ export const createOrder = async (req: Request, res: Response) => {
     
 }
 export const listOrders = async (req: Request, res: Response) => {
+    const user = req.user;
+    if (!user) {
+        throw new UnauthorizedException('Unauthorized', ErrorCode.UNAUTHORIZED);
+    }
 
+    const orders = await prisma.order.findMany({
+        where: {
+            userId: user.id
+        },
+        include: {
+            products: true
+        }
+    })
+    res.json(orders)
 }
 
 export const cancleOrder = async (req: Request, res: Response) => {
+    const user = req.user;
+    if (!user) {
+        throw new UnauthorizedException('Unauthorized', ErrorCode.UNAUTHORIZED);
+    }
 
+    const id = Number(req.params.id);
+
+    // wrap it inside a transaction so the order is only cancelled if it
+    // belongs to the logged in user
+    try {
+        const order = await prisma.$transaction(async (tx) => {
+            // findFirstOrThrow ensures the order exists AND belongs to the user
+            const existingOrder = await tx.order.findFirstOrThrow({
+                where: {
+                    id,
+                    userId: user.id
+                }
+            })
+
+            //  an order cannot be cancelled once it is out for delivery or delivered
+            const orderEvent = await tx.orderEvent.create({
+                data: {
+                    orderId: existingOrder.id,
+                    status: OrderEventStatus.CANCLLED
+                }
+            })
+
+            return orderEvent
+        })
+        res.json(order)
+    } catch (err) {
+        throw new notFoundException('ORDER not found', ErrorCode.ORDER_NOT_FOUND)
+    }
 }
 
 export const getOrderById = async (req: Request, res: Response) => {
+    const user = req.user;
+    if (!user) {
+        throw new UnauthorizedException('Unauthorized', ErrorCode.UNAUTHORIZED);
+    }
 
+    const id = Number(req.params.id);
+
+    try {
+        const order = await prisma.order.findFirstOrThrow({
+            where: {
+                id,
+                userId: user.id
+            },
+            include: {
+                products: true,
+                event: true
+            }
+        })
+        res.json(order)
+    } catch (err) {
+        throw new notFoundException('ORDER not found', ErrorCode.ORDER_NOT_FOUND)
+    }
 }
