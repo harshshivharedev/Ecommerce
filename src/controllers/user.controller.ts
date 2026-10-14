@@ -4,6 +4,7 @@ import { UnauthorizedException } from "../exceptions/unauthorized.js";
 import { ErrorCode } from "../exceptions/root.js";
 import prisma from "../lib/prisma.js";
 import { notFoundException } from "../exceptions/notFound.js";
+import { PrismaClient } from "@prisma/client/extension";
 
 //  fetch the user attached to the request by the auth middleware
 const getAuthenticatedUser = (req: Request) => {
@@ -141,4 +142,46 @@ export const updateAddress = async (req: Request, res: Response) => {
     })
 
     res.json(updatedUser)
+}
+
+export const listUsers = async(req: Request, res: Response) => {
+    const users = await PrismaClient.user.findMany({
+        skip: req.query.skip || 0,
+        take: 5
+    })
+    res.json(users);
+}
+
+export const getUserById = async(req: Request, res: Response) => {
+    try{
+        const user = await PrismaClient.user.findFirstOrThrow({
+            where: {
+                id: +req.params.id
+            },
+            include: {
+                addresses: true
+            }
+        })
+        res.json(user);
+
+    }catch ( err ) {
+        throw new notFoundException('user not found', ErrorCode.USER_NOT_FOUND)
+    }
+}
+
+export const changeUserRole = async(req: Request, res: Response) => {
+    try{
+        const user = await PrismaClient.user.update({
+            where: {
+                id: +req.params.id
+            },
+            data: {
+                role: req.body.role
+            }
+        })
+        res.json(user);
+
+    }catch ( err ) {
+        throw new notFoundException('user not found', ErrorCode.USER_NOT_FOUND)
+    }
 }
