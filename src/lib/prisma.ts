@@ -11,6 +11,23 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({
   adapter,
   log: process.env.NODE_ENV === "development" ? ["query"] : []
+}).$extends({
+  result:{
+    address: {
+      formatedAddress: {
+        needs: {
+          lineOne: true,
+          lineTwo: true,
+          city: true,
+          country: true,
+          pincode: true
+        },
+        compute: (addr) => {
+          return `${addr.lineOne}, ${addr.lineTwo}, ${addr.city}, ${addr.country}-${addr.pincode}`
+        }
+      }
+    }
+  }
 })
 
 export default prisma;
